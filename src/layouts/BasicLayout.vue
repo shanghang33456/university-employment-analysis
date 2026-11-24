@@ -36,7 +36,7 @@
 
       <transition name="fade">
         <div v-if="!appStore.collapsed" class="app-aside__footer">
-          <span class="dot"></span> 数据更新于 2025 届就业统计
+          <span class="dot"></span> 数据来源：教育厅 / 国家统计局
         </div>
       </transition>
     </aside>
@@ -114,7 +114,7 @@ import {
   Money,
   Location,
   Suitcase,
-  Tickets,
+  Document,
   Fold,
   Expand,
   Refresh,
@@ -138,7 +138,7 @@ const iconMap = {
   Money,
   Location,
   Suitcase,
-  Tickets,
+  Document,
 }
 
 /** 菜单项：从路由表推导，保持单一数据源 */

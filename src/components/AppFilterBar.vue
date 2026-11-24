@@ -7,9 +7,8 @@
         class="filter-bar__select"
         :style="{ width: stack ? '100%' : field.width }"
         size="default"
-        @change="onChange(field.key)"
       >
-        <el-option label="全部" value="all" />
+        <el-option label="全部学历" value="all" />
         <el-option
           v-for="option in field.options()"
           :key="option.value ?? option"
@@ -41,40 +40,12 @@ const filterStore = useFilterStore()
 
 const fields = computed(() => [
   {
-    key: 'year',
-    label: '毕业年份',
-    width: '130px',
-    options: () => filterStore.options.years.map((year) => ({ label: `${year} 届`, value: year })),
-  },
-  {
-    key: 'college',
-    label: '学院',
-    width: '150px',
-    options: () => filterStore.options.colleges,
-  },
-  {
     key: 'degree',
     label: '学历',
-    width: '110px',
+    width: '120px',
     options: () => filterStore.options.degrees,
   },
-  {
-    key: 'major',
-    label: '专业',
-    width: '165px',
-    options: () => filterStore.availableMajors,
-  },
-  {
-    key: 'province',
-    label: '就业省份',
-    width: '130px',
-    options: () => filterStore.options.provinces,
-  },
 ])
-
-function onChange(key) {
-  if (key === 'college') filterStore.syncMajorScope()
-}
 </script>
 
 <style scoped>

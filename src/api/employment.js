@@ -5,12 +5,12 @@
  */
 import request from './request'
 
-/** 获取筛选项（年份/学院/学历/行业等） */
+/** 获取筛选项（学历） */
 export function fetchFilterOptions(params) {
   return request.get('/filters', { params })
 }
 
-/** 总览：KPI + 趋势 */
+/** 总览：规模、落实率、去向大类与 TOP 排名 */
 export function fetchOverview(params, config) {
   return request.get('/overview', { params, ...config })
 }
@@ -25,7 +25,7 @@ export function fetchIndustry(params, config) {
   return request.get('/industry', { params, ...config })
 }
 
-/** 薪资水平 */
+/** 城镇单位工资与毕业生起薪 */
 export function fetchSalary(params, config) {
   return request.get('/salary', { params, ...config })
 }
@@ -35,12 +35,12 @@ export function fetchRegion(params, config) {
   return request.get('/region', { params, ...config })
 }
 
-/** 企业类型 */
+/** 单位性质 */
 export function fetchCompany(params, config) {
   return request.get('/company', { params, ...config })
 }
 
-/** 毕业生明细（分页） */
-export function fetchRecords(params, config) {
-  return request.get('/records', { params, ...config })
+/** 数据来源、指标口径与已知局限 */
+export function fetchSources(params, config) {
+  return request.get('/sources', { params, ...config })
 }

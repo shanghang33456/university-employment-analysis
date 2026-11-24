@@ -1,101 +1,100 @@
 <template>
   <div class="page">
+    <div class="page__hint">
+      <el-icon><InfoFilled /></el-icon>
+      <span>
+        当前范围：{{ stats?.scope || '全部学历' }}；行业占比分母为<strong>已就业毕业生</strong>，
+        工资数据另为城镇单位口径，二者不可直接比较
+      </span>
+    </div>
+
+    <SourceNote :ids="['S3', 'S2']" note="行业流向来自 S3 行业 × 学历交叉表，工资参照来自国家统计局 S2" />
+
     <div class="grid grid--kpi">
-      <StatCard label="覆盖行业数" :value="industryCount" suffix="个" :icon="OfficeBuilding" color="#4f7cff" foot="就业毕业生所在行业" />
-      <StatCard label="第一大行业" :value="topIndustryValue" suffix="人" :icon="TrendCharts" color="#22c1a4" :foot="stats.topIndustry" />
-      <StatCard label="最高薪资行业" :value="topSalary?.value || 0" suffix="元" :icon="Money" color="#ffb020" :foot="topSalary?.name || '—'" />
-      <StatCard label="行业集中度 CR3" :value="cr3" suffix="%" :icon="Histogram" color="#9b5de5" :digits="1" foot="前三大行业就业占比" />
+      <StatCard label="覆盖行业数" :value="industryCount" suffix="个" :icon="OfficeBuilding" color="#4f7cff" foot="国民经济行业门类" />
+      <StatCard label="第一大行业" :value="topIndustry?.selected || 0" suffix="%" :icon="TrendCharts" color="#22c1a4" :digits="1" :foot="topIndustry?.name || '—'" />
+      <StatCard label="行业集中度 CR3" :value="cr3" suffix="%" :icon="Histogram" color="#9b5de5" :digits="1" foot="前三大行业合计占比" />
+      <StatCard label="最高工资行业" :value="topWage" suffix="万/年" :icon="Money" color="#ffb020" :digits="1" :foot="stats?.wages?.[0]?.name || '—'" />
     </div>
 
     <div class="grid grid--2">
-      <ChartPanel title="就业行业分布" hint="按签约就业人数排序" :loading="loading">
-        <BaseChart :option="distributionOption" height="360px" />
+      <ChartPanel title="就业行业分布 TOP12" hint="占已就业毕业生的比例，按当前学历筛选" :loading="loading">
+        <BaseChart :option="distributionOption" height="400px" />
       </ChartPanel>
 
-      <ChartPanel title="各行业平均月薪" hint="仅统计签约就业与灵活就业毕业生" :loading="loading">
-        <BaseChart :option="salaryOption" height="360px" />
+      <ChartPanel title="学历 × 行业 热力图" hint="行内合计为 100%，颜色越深代表该学历进入该行业的比例越高" :loading="loading">
+        <BaseChart :option="heatmapOption" height="400px" />
       </ChartPanel>
     </div>
 
-    <ChartPanel title="学院 × 行业 就业热力图" hint="颜色越深代表该学院进入该行业的人数越多，可用于识别学院的行业优势" :loading="loading">
-      <BaseChart :option="heatmapOption" height="380px" />
-    </ChartPanel>
-
-    <ChartPanel title="不同学历的行业流向" hint="对比本科、硕士、博士的行业偏好差异" :loading="loading">
-      <BaseChart :option="degreeOption" height="340px" />
+    <ChartPanel
+      title="行业年平均工资参照（城镇单位）"
+      hint="国家统计局 2025 年城镇单位就业人员年平均工资，单位：万元/年；统计对象为城镇法人单位，不是毕业生起薪"
+      :loading="loading"
+    >
+      <BaseChart :option="wageOption" height="420px" />
     </ChartPanel>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { OfficeBuilding, TrendCharts, Money, Histogram } from '@element-plus/icons-vue'
+import { InfoFilled, OfficeBuilding, TrendCharts, Histogram, Money } from '@element-plus/icons-vue'
 import StatCard from '@/components/StatCard.vue'
 import ChartPanel from '@/components/ChartPanel.vue'
 import BaseChart from '@/components/BaseChart.vue'
+import SourceNote from '@/components/SourceNote.vue'
 import { fetchIndustry } from '@/api/employment'
 import { useAnalysisData } from '@/composables/useAnalysisData'
 import {
-  BASE_GRID,
   categoryAxis,
   valueAxis,
   barGradientH,
   createRankBarOption,
 } from '@/utils/chartOptions'
 
+const DEGREE_ROWS = [
+  { name: '博士', key: 'doctor' },
+  { name: '硕士', key: 'master' },
+  { name: '本科', key: 'bachelor' },
+  { name: '专科', key: 'college' },
+]
+
 const { data: stats, loading } = useAnalysisData(fetchIndustry, {
-  distribution: [],
-  salary: [],
-  matrix: { industries: [], colleges: [], data: [] },
-  byDegree: {},
+  scope: '全部学历',
+  industries: [],
+  wages: [],
 })
 
-const industryCount = computed(() => stats.value?.distribution?.length || 0)
-const topIndustryValue = computed(() => stats.value?.distribution?.[0]?.value || 0)
-const topSalary = computed(() => stats.value?.salary?.[0])
+const industryCount = computed(() => stats.value?.industries?.length || 0)
+const topIndustry = computed(() => stats.value?.industries?.[0])
+const topWage = computed(() => {
+  const value = stats.value?.wages?.[0]?.nonPrivate || 0
+  return Number((value / 10000).toFixed(1))
+})
 
 const cr3 = computed(() => {
-  const list = stats.value?.distribution || []
-  const total = list.reduce((sum, d) => sum + d.value, 0)
+  const list = stats.value?.industries || []
+  const total = list.reduce((sum, d) => sum + d.selected, 0)
   if (!total) return 0
-  const top3 = list.slice(0, 3).reduce((sum, d) => sum + d.value, 0)
+  const top3 = list.slice(0, 3).reduce((sum, d) => sum + d.selected, 0)
   return Number(((top3 / total) * 100).toFixed(1))
 })
 
 const distributionOption = computed(() =>
-  createRankBarOption({ data: stats.value?.distribution || [], unit: '人' }),
+  createRankBarOption({
+    data: (stats.value?.industries || []).slice(0, 12).map((d) => ({ name: d.name, value: d.selected })),
+    unit: '%',
+  }),
 )
 
-const salaryOption = computed(() => {
-  const list = [...(stats.value?.salary || [])].sort((a, b) => a.value - b.value)
-  return {
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: '{b}<br/>平均月薪 {c} 元' },
-    grid: { left: 8, right: 48, top: 12, bottom: 8, containLabel: true },
-    xAxis: valueAxis({ show: false }),
-    yAxis: categoryAxis({
-      data: list.map((d) => d.name),
-      axisLabel: { color: '#8a97b1', fontSize: 12, width: 90, overflow: 'truncate' },
-    }),
-    series: [
-      {
-        type: 'bar',
-        barWidth: 14,
-        showBackground: true,
-        backgroundStyle: { color: '#f4f6fb', borderRadius: 8 },
-        itemStyle: { borderRadius: 8, color: barGradientH('#ffd08a', '#ffb020') },
-        label: { show: true, position: 'right', color: '#5c6b8a', fontSize: 11, formatter: '{c} 元' },
-        data: list.map((d) => d.value),
-      },
-    ],
-  }
-})
-
+/** 学历 × 行业热力图（取占比最高的 10 个行业） */
 const heatmapOption = computed(() => {
-  const matrix = stats.value?.matrix || { industries: [], colleges: [], data: [] }
+  const top = (stats.value?.industries || []).slice(0, 10)
   const points = []
-  matrix.data.forEach((row, y) => {
-    row.forEach((value, x) => {
-      points.push([x, y, value])
+  DEGREE_ROWS.forEach((row, y) => {
+    top.forEach((item, x) => {
+      points.push([x, y, item[row.key] ?? 0])
     })
   })
   const maxValue = Math.max(1, ...points.map((p) => p[2]))
@@ -103,16 +102,18 @@ const heatmapOption = computed(() => {
   return {
     tooltip: {
       position: 'top',
-      formatter: (params) =>
-        `${matrix.colleges[params.value[1]]}<br/>${matrix.industries[params.value[0]]}<br/>${params.value[2]} 人`,
+      formatter: (params) => {
+        const [x, y, value] = params.value
+        return `${DEGREE_ROWS[y].name}<br/>${top[x].name}<br/>${value}%`
+      },
     },
     grid: { left: 8, right: 20, top: 20, bottom: 60, containLabel: true },
     xAxis: categoryAxis({
-      data: matrix.industries,
-      axisLabel: { color: '#8a97b1', fontSize: 11, interval: 0, rotate: 22 },
+      data: top.map((d) => d.name),
+      axisLabel: { color: '#8a97b1', fontSize: 11, interval: 0, rotate: 26, width: 84, overflow: 'truncate' },
       splitArea: { show: true },
     }),
-    yAxis: categoryAxis({ data: matrix.colleges, splitArea: { show: true } }),
+    yAxis: categoryAxis({ data: DEGREE_ROWS.map((d) => d.name), splitArea: { show: true } }),
     visualMap: {
       min: 0,
       max: maxValue,
@@ -127,7 +128,7 @@ const heatmapOption = computed(() => {
       {
         type: 'heatmap',
         data: points,
-        label: { show: true, fontSize: 10, color: '#1f2d4d' },
+        label: { show: true, fontSize: 10, color: '#1f2d4d', formatter: '{c}%' },
         itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 4 },
         emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(31,56,110,0.35)' } },
       },
@@ -135,31 +136,41 @@ const heatmapOption = computed(() => {
   }
 })
 
-const degreeOption = computed(() => {
-  const byDegree = stats.value?.byDegree || {}
-  const degrees = Object.keys(byDegree)
-  const industries = (stats.value?.distribution || []).slice(0, 7).map((d) => d.name)
-
-  const industriesByDegree = degrees.map((degree) => {
-    const row = byDegree[degree] || {}
-    const total = Object.values(row).reduce((sum, v) => sum + v, 0)
-    return industries.map((name) => (total ? Number((((row[name] || 0) / total) * 100).toFixed(1)) : 0))
-  })
-
+/** 行业年平均工资（万元/年，非私营 vs 私营） */
+const wageOption = computed(() => {
+  const list = (stats.value?.wages || []).slice(0, 10).reverse()
+  const toWan = (value) => (value == null ? null : Number((value / 10000).toFixed(1)))
   return {
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (v) => `${v}%` },
-    legend: { top: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { color: '#5c6b8a', fontSize: 12 } },
-    grid: { ...BASE_GRID, top: 44 },
-    xAxis: categoryAxis({ data: degrees }),
-    yAxis: valueAxis({ max: 100, axisLabel: { color: '#8a97b1', fontSize: 12, formatter: '{value}%' } }),
-    series: industries.map((name, index) => ({
-      name,
-      type: 'bar',
-      stack: 'total',
-      barWidth: 48,
-      itemStyle: { borderRadius: index === industries.length - 1 ? [4, 4, 0, 0] : 0 },
-      data: degrees.map((_, degreeIndex) => industriesByDegree[degreeIndex][index]),
-    })),
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      valueFormatter: (value) => (value == null ? '—' : `${value} 万元/年`),
+    },
+    legend: { top: 0, icon: 'roundRect', itemWidth: 10, itemHeight: 10, textStyle: { color: '#5c6b8a', fontSize: 12 } },
+    grid: { left: 8, right: 56, top: 42, bottom: 8, containLabel: true },
+    xAxis: valueAxis({ show: false }),
+    yAxis: categoryAxis({
+      data: list.map((d) => d.name),
+      axisLabel: { color: '#8a97b1', fontSize: 12, width: 130, overflow: 'truncate' },
+    }),
+    series: [
+      {
+        name: '非私营单位',
+        type: 'bar',
+        barWidth: 9,
+        itemStyle: { borderRadius: 5, color: barGradientH('#8fb0ff', '#4f7cff') },
+        label: { show: true, position: 'right', color: '#4a5878', fontSize: 11, formatter: '{c}万' },
+        data: list.map((d) => toWan(d.nonPrivate)),
+      },
+      {
+        name: '私营单位',
+        type: 'bar',
+        barWidth: 9,
+        itemStyle: { borderRadius: 5, color: barGradientH('#7ee0cd', '#22c1a4') },
+        label: { show: true, position: 'right', color: '#4a5878', fontSize: 11, formatter: '{c}万' },
+        data: list.map((d) => toWan(d.private)),
+      },
+    ],
   }
 })
 </script>

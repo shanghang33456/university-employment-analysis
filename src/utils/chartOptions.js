@@ -65,9 +65,12 @@ export function barGradientH(from, to) {
 }
 
 /** 环形饼图（用于占比结构展示） */
-export function createDonutOption({ data, centerLabel = '', radius = ['46%', '72%'] }) {
+export function createDonutOption({ data, centerLabel = '', radius = ['46%', '72%'], unit = '人' }) {
   return {
-    tooltip: { trigger: 'item', formatter: '{b}<br/>{c} 人 ({d}%)' },
+    tooltip: {
+      trigger: 'item',
+      formatter: (params) => `${params.name}<br/>${params.value} ${unit}（${params.percent}%）`,
+    },
     legend: {
       orient: 'vertical',
       right: 4,
@@ -86,7 +89,7 @@ export function createDonutOption({ data, centerLabel = '', radius = ['46%', '72
         itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 4 },
         label: {
           show: true,
-          formatter: '{d}%',
+          formatter: unit === '人' ? '{d}%' : `{c}${unit}`,
           color: '#4a5878',
           fontSize: 11,
         },
@@ -136,7 +139,13 @@ export function createRankBarOption({ data, color = ['#4f7cff', '#22c1a4'], unit
         showBackground: true,
         backgroundStyle: { color: '#f4f6fb', borderRadius: 8 },
         itemStyle: { borderRadius: 8, color: barGradientH(color[0], color[1]) },
-        label: { show: true, position: 'right', color: '#5c6b8a', fontSize: 11 },
+        label: {
+          show: true,
+          position: 'right',
+          color: '#5c6b8a',
+          fontSize: 11,
+          formatter: `{c} ${unit}`,
+        },
         data: sorted.map((d) => d.value),
       },
     ],
